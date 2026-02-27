@@ -36,7 +36,7 @@ body { margin:0; display:flex; font-family:Arial; }
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAXR1Oq6v-LDMkXLMnQ25PzBd3D47cYZsw",
@@ -50,7 +50,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-
 
 mapboxgl.accessToken = "pk.eyJ1Ijoiam9zZW1tdiIsImEiOiJjbW0zdTk2bzkwNGw0MnJweG1xajM0Z3hlIn0.-DNTYb4B6Locy9vReR8FNg";
 
@@ -66,17 +65,27 @@ let primeraVez = true;
 
 const ubicacionesRef = ref(database, "ubicaciones");
 
-onChildAdded(ubicacionesRef, (snapshot) => {
+onValue(ubicacionesRef, (snapshot) => {
 
-    const data = snapshot.val();
-    if (!data) return;
+    const datos = snapshot.val();
+    if (!datos) return;
+
+    // 🔍 Detecta si usas push() o set()
+    let data;
+
+    if (typeof datos.lat !== "undefined" || typeof datos.latitud !== "undefined") {
+        data = datos; // set()
+    } else {
+        const claves = Object.keys(datos);
+        data = datos[claves[claves.length - 1]]; // push()
+    }
 
     const lat = data.latitud ?? data.lat;
     const lng = data.longitud ?? data.lng;
 
     if (lat == null || lng == null) return;
 
-    const fecha = new Date(Number(data.hora));
+    const fecha = new Date(Number(data.hora || Date.now()));
 
     const horaFormateada = fecha.toLocaleString("es-BO", {
         timeZone: "America/La_Paz",
@@ -128,4 +137,10 @@ onChildAdded(ubicacionesRef, (snapshot) => {
 </script>
 
 </body>
+</html>
+
+</script>
+
+</body>
+
 </html>
