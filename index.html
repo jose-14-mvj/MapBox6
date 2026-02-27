@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Seguimiento en Tiempo Real</title>
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+<style>
+body { margin:0; display:flex; font-family:Arial; }
+#map { width:70%; height:100vh; }
+#panel {
+    width:30%;
+    height:100vh;
+    overflow:auto;
+    padding:10px;
+    background:#639fc0;
+}
+.item {
+    padding:6px;
+    border-bottom:1px solid #ccc;
+    font-size:14px;
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+<h3>Historial</h3>
+<div id="historial"></div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAXR1Oq6v-LDMkXLMnQ25PzBd3D47cYZsw",
+  authDomain: "mapafirebaseproyecto.firebaseapp.com",
+  databaseURL: "https://mapafirebaseproyecto-default-rtdb.firebaseio.com",
+  projectId: "mapafirebaseproyecto",
+  storageBucket: "mapafirebaseproyecto.firebasestorage.app",
+  messagingSenderId: "568812841350",
+  appId: "1:568812841350:web:91e5bc3c6abf40ff572407"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+
+mapboxgl.accessToken = "pk.eyJ1Ijoiam9zZW1tdiIsImEiOiJjbW0zdTk2bzkwNGw0MnJweG1xajM0Z3hlIn0.-DNTYb4B6Locy9vReR8FNg";
+
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v12',
+    center: [-68.1193, -16.4897],
+    zoom: 18
+});
+
+let marker;
+let primeraVez = true;
+
+const ubicacionesRef = ref(database, "ubicaciones");
+
+onChildAdded(ubicacionesRef, (snapshot) => {
+
+    const data = snapshot.val();
+    if (!data) return;
+
+    const lat = data.latitud ?? data.lat;
+    const lng = data.longitud ?? data.lng;
+
+    if (lat == null || lng == null) return;
+
+    const fecha = new Date(Number(data.hora));
+
+    const horaFormateada = fecha.toLocaleString("es-BO", {
+        timeZone: "America/La_Paz",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+    });
+
+    // 📍 Marcador
+    if (!marker) {
+        marker = new mapboxgl.Marker()
+            .setLngLat([lng, lat])
+            .addTo(map);
+    } else {
+        marker.setLngLat([lng, lat]);
+    }
+
+    // 🛰 Movimiento suave
+    if (primeraVez) {
+        map.flyTo({
+            center: [lng, lat],
+            zoom: 18,
+            speed: 1.2
+        });
+        primeraVez = false;
+    } else {
+        map.easeTo({
+            center: [lng, lat],
+            duration: 800
+        });
+    }
+
+    // 📜 Historial
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+        <b>Fecha y Hora:</b> ${horaFormateada}<br>
+        <b>Lat:</b> ${lat}<br>
+        <b>Lng:</b> ${lng}
+    `;
+    document.getElementById("historial").prepend(div);
+
+});
+
+</script>
+
+</body>
+</html>
