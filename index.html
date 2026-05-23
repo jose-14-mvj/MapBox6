@@ -71,6 +71,176 @@ main{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;position:rela
 .spin{width:40px;height:40px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--dim);font-family:var(--mono);font-size:12px;text-align:center}
+/* ══════════════════════════════════════════════
+   RESPONSIVE MOBILE FIX
+══════════════════════════════════════════════ */
+
+@media screen and (max-width: 768px){
+
+  body{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  header{
+    height:auto;
+    min-height:52px;
+    padding:10px 12px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .logo{
+    font-size:15px;
+    letter-spacing:2px;
+  }
+
+  .hdr-right{
+    width:100%;
+    margin-left:0;
+    font-size:10px;
+  }
+
+  aside{
+    width:100%;
+    height:180px;
+    min-height:180px;
+    border-right:none;
+    border-bottom:1px solid var(--border);
+    overflow:hidden;
+  }
+
+  #device-list{
+    overflow-y:auto;
+    padding-bottom:10px;
+  }
+
+  .dcard{
+    margin:6px;
+    padding:10px;
+  }
+
+  .dname{
+    font-size:13px;
+  }
+
+  .dmeta{
+    flex-wrap:wrap;
+    gap:4px;
+    font-size:9px;
+  }
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow:hidden;
+  }
+
+  .infobar{
+    padding:8px;
+    gap:8px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    flex-wrap:nowrap;
+    min-height:auto;
+    scrollbar-width:none;
+  }
+
+  .infobar::-webkit-scrollbar{
+    display:none;
+  }
+
+  .chip{
+    flex:0 0 auto;
+    min-width:95px;
+  }
+
+  .clabel{
+    font-size:8px;
+  }
+
+  .cval{
+    font-size:11px;
+  }
+
+  #map{
+    flex:1;
+    min-height:260px;
+  }
+
+  .ctrlbar{
+    padding:8px;
+    gap:8px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .btn{
+    width:100%;
+    min-width:0;
+    justify-content:center;
+    padding:10px 8px;
+    font-size:11px;
+  }
+
+  .vsep{
+    display:none;
+  }
+
+  .ctrl-right{
+    grid-column:1/-1;
+    margin-left:0;
+    text-align:center;
+    margin-top:2px;
+    font-size:9px;
+  }
+
+  .geohint{
+    grid-column:1/-1;
+    text-align:center;
+    font-size:9px;
+  }
+
+  #notif-wrap{
+    width:calc(100% - 20px);
+    right:10px;
+    left:10px;
+    bottom:70px;
+  }
+
+}
+
+/* CELULARES PEQUEÑOS */
+
+@media screen and (max-width: 480px){
+
+  aside{
+    height:160px;
+    min-height:160px;
+  }
+
+  .ctrlbar{
+    grid-template-columns:1fr;
+  }
+
+  .btn{
+    font-size:10px;
+    padding:11px 6px;
+  }
+
+  .logo{
+    font-size:13px;
+  }
+
+  #map{
+    min-height:220px;
+  }
+
+}
 </style>
 </head>
 <body>
