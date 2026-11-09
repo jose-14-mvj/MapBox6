@@ -34,7 +34,8 @@ aside{background:var(--surface);border-right:1px solid var(--border);display:fle
 .dcard.st-ok::before{background:var(--ok)}
 .dcard.st-offline::before{background:var(--dim)}
 .dcard:hover{border-color:rgba(0,229,255,.5)}
-.dname{font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.dname{font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;overflow-wrap:anywhere}
+.did{font-family:var(--mono);font-size:9px;color:var(--dim);overflow-wrap:anywhere;margin-top:2px}
 .dmeta{display:flex;gap:8px;margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--dim)}
 .badge{padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
 .b-ok{background:rgba(0,230,118,.15);color:var(--ok);border:1px solid rgba(0,230,118,.3)}
@@ -391,6 +392,7 @@ function listen() {
       ensure(id);
       if (info.gpsActivo !== undefined) devices[id].gpsActivo = info.gpsActivo;
       if (info.ultimaVez)               devices[id].ultimaVez = info.ultimaVez;
+      if (typeof info.nombre === 'string') devices[id].nombre = info.nombre;
     });
     refresh();
   });
@@ -404,6 +406,18 @@ function listen() {
 }
 
 function ensure(id) { if (!devices[id]) devices[id] = { id }; }
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+// No insertar un ID de Firebase como JavaScript dentro de onclick.
+document.getElementById('device-list').addEventListener('click', event => {
+  const card = event.target.closest('.dcard[data-device-id]');
+  if (card) selectDev(card.dataset.deviceId);
+});
 
 // ══════════════════════════════════════════════
 // RENDER LISTA
@@ -445,9 +459,12 @@ function renderList() {
     const prec = loc.precision ? `±${loc.precision.toFixed(1)}m` : '';
     const sat  = loc.satelites ? `${loc.satelites} sat` : '';
 
-    return `<div class="dcard ${cls} ${sel===d.id?'sel':''}" onclick="selectDev('${d.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="dname">${d.id}</div>
+    return `<div class="dcard ${cls} ${sel===d.id?'sel':''}" data-device-id="${escapeHtml(d.id)}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="min-width:0">
+          <div class="dname">${escapeHtml(d.nombre || d.id)}</div>
+          ${d.nombre ? `<div class="did">${escapeHtml(d.id)}</div>` : ''}
+        </div>
         <div style="display:flex;gap:4px">${badges.join('')}</div>
       </div>
       <div class="dmeta">
@@ -520,7 +537,7 @@ function updateInfoBar() {
   const gTxt   = !online ? 'SIN SEÑAL' : gpsOff ? 'GPS OFF' : 'ACTIVO';
 
   bar.innerHTML = `
-    <div class="chip"><div class="clabel">Dispositivo</div><div class="cval">${sel}</div></div>
+    <div class="chip"><div class="clabel">Dispositivo</div><div class="cval" title="${escapeHtml(sel)}">${escapeHtml(d.nombre || sel)}</div></div>
     <div class="vsep"></div>
     <div class="chip"><div class="clabel">Geocerca</div><div class="cval" style="color:${eColor}">${estado||'—'}</div></div>
     <div class="vsep"></div>
