@@ -1,7 +1,7 @@
 'use strict';
 /* GPS Control Pro: clientes autenticados, solo posición actual en vivo, rutas bajo demanda. */
 const firebaseConfig = {
-  apiKey: 'AIzaSyDoIeF_XG5Fg0w93XE6DRoLSMdjarr8qyY',
+  apiKey: 'AIzaSyDoIeF_XG5FgOw93XE6DRoLSMdjarf8qYY',
   authDomain: 'gpscontrol-5357a.firebaseapp.com',
   databaseURL: 'https://gpscontrol-5357a-default-rtdb.firebaseio.com',
   projectId: 'gpscontrol-5357a',

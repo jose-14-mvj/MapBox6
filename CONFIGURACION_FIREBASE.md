@@ -1,9 +1,9 @@
 # Firebase web configurado
 
-Se actualizó `app.js` con el objeto `firebaseConfig` de la app web **GPS Control Pro Web**, según la captura de Firebase Console.
+El archivo `app.js` contiene los valores exactos de `firebaseConfig` que el propietario copió de Firebase Console (proyecto `gpscontrol-5357a`).
 
-**Antes de publicar:** selecciona la opción **Config** en Firebase y comprueba que los campos `apiKey` y `appId` coinciden exactamente con la consola. La configuración se transcribió desde una captura, por lo que es importante verificarla.
+Se corrigió `apiKey` respecto a una versión anterior del ZIP, en la que se habían transcrito incorrectamente tres caracteres.
 
-Los datos actuales de Realtime Database no fueron modificados. No publiques reglas nuevas hasta completar las pruebas de autenticación y acceso.
+No se modificaron las reglas de Realtime Database. El inicio de sesión y la sincronización todavía deben probarse con un servidor HTTPS y los permisos de Firebase configurados.
 
-Para instalar esta web como PWA, súbela a Hosting HTTPS con los archivos `index.html`, `app.js`, `sw.js`, `manifest.webmanifest` y carpeta `icons`.
+Para instalar como PWA, publica `index.html`, `app.js`, `sw.js`, `manifest.webmanifest` y la carpeta `icons` mediante HTTPS.
