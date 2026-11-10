@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b0f">
+<meta name="description" content="Panel GPS seguro, con historial y geocercas para dispositivos autorizados">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <title>GPS Control Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <style>
@@ -242,6 +248,39 @@ main{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;position:rela
   }
 
 }
+
+#btn-instalar[hidden]{display:none}
+/* Controles web instalable */
+.install-actions{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.install-actions button{font-size:11px;padding:6px 10px}
+.user-info{font:10px var(--mono);color:var(--dim);max-width:200px;overflow:hidden;text-overflow:ellipsis}
+#auth-screen{position:fixed;inset:0;background:rgba(5,10,16,.97);display:flex;align-items:center;justify-content:center;z-index:11000;padding:15px}
+.auth-card{width:100%;max-width:400px;border:1px solid var(--border);background:var(--surface);padding:28px;border-radius:14px;box-shadow:0 10px 50px #000}
+.auth-card h2{font-size:26px;color:var(--accent);margin-bottom:8px}
+.auth-card p{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.55;margin-bottom:20px}
+.auth-card label{display:block;font-family:var(--mono);font-size:12px;margin:14px 0 5px}
+.auth-card input{width:100%;border:1px solid var(--border);background:var(--bg);padding:12px;color:var(--text);border-radius:5px}
+.auth-card .btn{width:100%;justify-content:center;margin-top:10px}
+#auth-error{font:12px var(--mono);color:var(--red);margin-top:10px;min-height:30px}
+.tools{background:var(--surface);border-top:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tools label{font:10px var(--mono);color:var(--dim)}
+.tools select,.tools input{min-height:34px;color:var(--text);background:var(--surface2);border:1px solid var(--border);padding:5px;border-radius:5px}
+.tools .btn{font-size:10px;padding:7px 10px;letter-spacing:.3px}
+#ruta-datos,#ruta-retencion{font:10px var(--mono);color:var(--dim);min-width:130px}
+#slider-ruta{width:100px;min-height:28px;accent-color:var(--accent)}
+.pin-gps{width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid white;box-shadow:0 0 13px var(--accent)}
+main{grid-template-rows:auto 1fr auto auto}
+@media(max-width:768px){header{min-height:65px}.install-actions{margin-left:0}#info-usuario{display:none}.tools{max-height:135px;overflow-y:auto}.ctrlbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}.btn{min-height:35px}aside{height:150px;min-height:150px}}
+@media(max-width:480px){.ctrlbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}.btn{font-size:10px}}
+@media(max-width:768px){
+  aside{height:125px;min-height:125px}
+  .ctrlbar{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;min-height:58px;max-height:65px;scrollbar-width:thin}
+  .ctrlbar .btn{flex:0 0 auto;width:auto!important;min-width:125px;white-space:nowrap}
+  .ctrl-right{flex:0 0 auto;min-width:160px;grid-column:auto}
+  .tools{flex-wrap:nowrap!important;overflow-x:auto;max-height:60px!important;min-height:60px}
+  .tools>*{flex-shrink:0}
+  #map{min-height:120px}
+}
 </style>
 </head>
 <body>
@@ -255,7 +294,13 @@ main{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;position:rela
   <div class="logo">GPS<span>CONTROL</span></div>
   <div style="width:1px;height:24px;background:var(--border)"></div>
   <div style="font-size:11px;color:var(--dim);letter-spacing:2px;text-transform:uppercase">Panel de Administración</div>
-  <div class="hdr-right">FIREBASE: <b id="fb-status">CONECTANDO</b></div>
+  <div class="install-actions">
+  <span class="user-info" id="info-usuario"></span>
+  <button class="btn btn-geo" id="btn-instalar" hidden>⬇ Instalar app</button>
+  <button class="btn btn-del" id="btn-notif" title="Notificaciones con la web abierta">🔔</button>
+  <button class="btn btn-del" id="btn-salir" style="display:none">Salir</button>
+</div>
+<div class="hdr-right">FIREBASE: <b id="fb-status">CONECTANDO</b></div>
 </header>
 
 <aside>
@@ -270,451 +315,54 @@ main{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;position:rela
   </div>
   <div id="map"><div class="empty"><div style="font-size:36px;opacity:.3">🗺️</div>Selecciona un dispositivo para ver el mapa</div></div>
   <div class="ctrlbar">
-    <button class="btn btn-lock"   id="btn-lock"   disabled onclick="bloquear()">🔒 Bloquear</button>
-    <button class="btn btn-unlock" id="btn-unlock" disabled onclick="desbloquear()">🔓 Desbloquear</button>
+    <button class="btn btn-lock" id="btn-lock" disabled>🔒 Bloquear pantalla</button>
+    <button class="btn btn-geo" id="btn-aviso" disabled>⚠ Enviar aviso</button>
+    <button class="btn btn-unlock" id="btn-unlock" disabled>✓ Quitar aviso</button>
     <div class="vsep"></div>
-    <button class="btn btn-geo"    id="btn-geo"    disabled onclick="toggleGeo()">📍 Definir Geocerca</button>
-    <button class="btn btn-del"    id="btn-delgeo" disabled onclick="borrarGeocerca()">🗑 Borrar Geocerca</button>
+    <button class="btn btn-geo" id="btn-geo" disabled>📍 Nueva geocerca</button>
+    <button class="btn btn-del" id="btn-delgeo" disabled>🗑 Borrar geocercas</button>
     <span class="geohint" id="geohint">CLIC = PUNTO &nbsp;·&nbsp; DOBLE CLIC = CERRAR POLÍGONO</span>
-    <div class="ctrl-right" id="last-ts"></div>
+    <div class="ctrl-right"><span style="margin-right:10px">Bloqueo requiere autorización del teléfono</span><span id="last-ts"></span></div>
+  </div>
+  <div class="tools">
+    <label for="modo-select">GPS:</label>
+    <select id="modo-select" disabled><option value="ahorro">Ahorro</option><option value="normal" selected>Normal</option><option value="preciso">Preciso</option></select>
+    <label for="dia-ruta">Historial (UTC):</label><input id="dia-ruta" type="date">
+    <button class="btn btn-geo" id="btn-ruta" disabled>Ver ruta</button>
+    <button class="btn btn-geo" id="btn-exportar" disabled>Exportar CSV</button>
+    <button class="btn btn-geo" id="btn-gpx" disabled>Exportar GPX</button>
+    <button class="btn btn-geo" id="btn-play" disabled>▶ Reproducir</button>
+    <input id="slider-ruta" type="range" min="0" max="0" value="0" disabled title="Reproducción del recorrido">
+    <button class="btn btn-del" id="btn-borrar-hist" disabled>Borrar historial</button>
+    <button class="btn btn-del" id="btn-limpiar">Limpiar antiguos</button>
+    <span id="ruta-datos">Selecciona una fecha</span>
+    <span id="ruta-retencion">Retención: 14 días</span>
   </div>
 </main>
 
+<div id="auth-screen">
+  <form class="auth-card" id="frm-login">
+    <h2>GPS CONTROL</h2>
+    <p>Acceso privado a tus celulares autorizados.<br>Usa la misma cuenta en la app Android y en este panel.</p>
+    <label for="auth-correo">Correo electrónico</label>
+    <input id="auth-correo" type="email" autocomplete="email" required>
+    <label for="auth-clave">Contraseña</label>
+    <input id="auth-clave" type="password" autocomplete="current-password" minlength="6" required>
+    <button class="btn btn-geo" id="btn-acceder" type="submit">Entrar</button>
+    <button class="btn btn-del" id="btn-crear" type="button">Crear cuenta nueva</button>
+    <div id="auth-error" role="alert"></div>
+  </form>
+</div>
+
 <div id="notif-wrap"></div>
-
+<div id="sin-librerias" style="display:none;position:fixed;inset:0;z-index:12000;background:#080b0f;color:#c8d6e5;align-items:center;justify-content:center;padding:32px;text-align:center;font:16px sans-serif">
+  <div><h2>GPS Control necesita conexión</h2><p>No se pudieron cargar Firebase o Mapbox. Vuelve a conectarte a internet y abre la aplicación nuevamente.</p></div>
+</div>
+<script src="./app.js" defer></script>
 <script>
-// ══════════════════════════════════════════════
-// FIREBASE INIT
-// ══════════════════════════════════════════════
-firebase.initializeApp({
-  apiKey:            "AIzaSyCYb6kiLTpBzm7r8L_hVRp93SIDJeEwWR0",
-  databaseURL:       "https://gpscontrol-5357a-default-rtdb.firebaseio.com",
-  projectId:         "gpscontrol-5357a",
-  storageBucket:     "gpscontrol-5357a.firebasestorage.app",
-  messagingSenderId: "361968276149",
-  appId:             "1:361968276149:android:3abedc768502e5eaa1e4fc"
-});
-const db = firebase.database();
-
-// ══════════════════════════════════════════════
-// MAPBOX
-// ══════════════════════════════════════════════
-mapboxgl.accessToken = 'pk.eyJ1Ijoiam9zZW1tdiIsImEiOiJjbW0zdTk2bzkwNGw0MnJweG1xajM0Z3hlIn0.-DNTYb4B6Locy9vReR8FNg';
-let map = null, mapReady = false, marker = null;
-
-// FIX 1: centrar el mapa solo la primera vez, no en cada actualización de ubicación
-let primerCentrado = false;
-
-function initMap() {
-  if (mapReady) return;
-  const cont = document.getElementById('map');
-  cont.innerHTML = '';
-  map = new mapboxgl.Map({ container:'map', style:'mapbox://styles/mapbox/dark-v11', center:[-68.15,-16.50], zoom:13 });
-  map.on('load', () => {
-    map.addSource('gc', { type:'geojson', data:emptyFC() });
-    map.addLayer({ id:'gc-fill', type:'fill', source:'gc', paint:{'fill-color':'#00e5ff','fill-opacity':0.12} });
-    map.addLayer({ id:'gc-line', type:'line', source:'gc', paint:{'line-color':'#00e5ff','line-width':2} });
-    map.addSource('dr', { type:'geojson', data:emptyFC() });
-    map.addLayer({ id:'dr-line', type:'line', source:'dr', paint:{'line-color':'#ffb300','line-width':2,'line-dasharray':[2,1]} });
-    map.addLayer({ id:'dr-pts',  type:'circle', source:'dr', filter:['==','$type','Point'],
-      paint:{'circle-radius':5,'circle-color':'#ffb300','circle-stroke-width':1,'circle-stroke-color':'#fff'} });
-    map.on('click',    onMapClick);
-    map.on('dblclick', onMapDblClick);
-    mapReady = true;
-    if (sel) loadDevice(sel);
+  window.addEventListener('load',function(){
+    if (!window.firebase || !window.mapboxgl) document.getElementById('sin-librerias').style.display='flex';
   });
-}
-const emptyFC = () => ({ type:'FeatureCollection', features:[] });
-
-// ══════════════════════════════════════════════
-// ESTADO
-// ══════════════════════════════════════════════
-let devices = {};
-let sel     = null;
-let drawing = false, drawPts = [];
-const OFFLINE_MS = 90000;
-
-// FIX 2: guardar la última hora recibida por dispositivo para descartar datos viejos
-const ultimasHoras = {};
-
-// ══════════════════════════════════════════════
-// LISTENERS FIREBASE
-// ══════════════════════════════════════════════
-function listen() {
-
-  // FIX 2: filtrar ubicaciones desordenadas comparando horaGps
-  db.ref('ubicaciones').on('value', snap => {
-    const data = snap.val() || {};
-    Object.entries(data).forEach(([id, loc]) => {
-      const horaGps = loc.horaGps || loc.hora || 0;
-
-      // Ignorar si Firebase nos manda un dato más viejo que el último procesado
-      // Esto elimina el "salto" causado por reenvíos internos de Firebase
-      if (horaGps > 0 && horaGps <= (ultimasHoras[id] || 0)) return;
-      ultimasHoras[id] = horaGps;
-
-      ensure(id);
-      devices[id].ubicacion = loc;
-      devices[id].ultimaVez = loc.hora || Date.now();
-      devices[id].gpsActivo = true;
-    });
-    refresh();
-  });
-
-  // Estado geocerca (OK / FUERA)
-  db.ref('estado').on('value', snap => {
-    const data = snap.val() || {};
-    Object.keys(devices).forEach(id => { devices[id].estado = null; });
-    Object.entries(data).forEach(([id, est]) => {
-      ensure(id);
-      const prev = devices[id].estado;
-      devices[id].estado = est;
-      if (est === 'FUERA' && prev !== 'FUERA') alertaFuera(id);
-    });
-    refresh();
-  });
-
-  // Restricciones manuales
-  db.ref('restricciones').on('value', snap => {
-    const data = snap.val() || {};
-    Object.keys(devices).forEach(id => { devices[id].bloqueado = false; });
-    Object.entries(data).forEach(([id, val]) => {
-      ensure(id);
-      devices[id].bloqueado = val === true;
-    });
-    refresh();
-  });
-
-  // Info de dispositivos (gpsActivo, ultimaVez)
-  db.ref('dispositivos').on('value', snap => {
-    const data = snap.val() || {};
-    Object.entries(data).forEach(([id, info]) => {
-      ensure(id);
-      if (info.gpsActivo !== undefined) devices[id].gpsActivo = info.gpsActivo;
-      if (info.ultimaVez)               devices[id].ultimaVez = info.ultimaVez;
-      if (typeof info.nombre === 'string') devices[id].nombre = info.nombre;
-    });
-    refresh();
-  });
-
-  // Estado conexión Firebase
-  db.ref('.info/connected').on('value', snap => {
-    const el = document.getElementById('fb-status');
-    if (snap.val()) { el.textContent='CONECTADO';    el.style.color='var(--ok)'; }
-    else            { el.textContent='DESCONECTADO'; el.style.color='var(--red)'; }
-  });
-}
-
-function ensure(id) { if (!devices[id]) devices[id] = { id }; }
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, ch => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-  }[ch]));
-}
-
-// No insertar un ID de Firebase como JavaScript dentro de onclick.
-document.getElementById('device-list').addEventListener('click', event => {
-  const card = event.target.closest('.dcard[data-device-id]');
-  if (card) selectDev(card.dataset.deviceId);
-});
-
-// ══════════════════════════════════════════════
-// RENDER LISTA
-// ══════════════════════════════════════════════
-function refresh() {
-  renderList();
-  if (sel) { updateInfoBar(); updateMarker(); }
-}
-
-function renderList() {
-  const list  = document.getElementById('device-list');
-  const devs  = Object.values(devices);
-  document.getElementById('dev-count').textContent = devs.length;
-
-  if (!devs.length) {
-    list.innerHTML = `<div class="empty"><div style="font-size:36px;opacity:.3">📡</div>Sin dispositivos registrados</div>`;
-    return;
-  }
-
-  let alertas = 0;
-  list.innerHTML = devs.map(d => {
-    const { online, gpsOff, estado } = getStatus(d);
-    if (estado === 'FUERA') alertas++;
-
-    let cls = '';
-    if (!online || gpsOff)       cls = 'st-offline';
-    else if (estado === 'FUERA') cls = 'st-fuera';
-    else if (estado === 'OK')    cls = 'st-ok';
-
-    const badges = [];
-    if (!online)               badges.push(`<span class="badge b-off">SIN SEÑAL</span>`);
-    else if (gpsOff)           badges.push(`<span class="badge b-gpsoff">GPS OFF</span>`);
-    else if (estado==='OK')    badges.push(`<span class="badge b-ok">DENTRO</span>`);
-    else if (estado==='FUERA') badges.push(`<span class="badge b-fuera">FUERA</span>`);
-    if (d.bloqueado)           badges.push(`<span class="badge b-bloq">BLOQUEADO</span>`);
-
-    const ts   = d.ultimaVez ? relTime(d.ultimaVez) : 'nunca';
-    const loc  = d.ubicacion || {};
-    const prec = loc.precision ? `±${loc.precision.toFixed(1)}m` : '';
-    const sat  = loc.satelites ? `${loc.satelites} sat` : '';
-
-    return `<div class="dcard ${cls} ${sel===d.id?'sel':''}" data-device-id="${escapeHtml(d.id)}">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <div style="min-width:0">
-          <div class="dname">${escapeHtml(d.nombre || d.id)}</div>
-          ${d.nombre ? `<div class="did">${escapeHtml(d.id)}</div>` : ''}
-        </div>
-        <div style="display:flex;gap:4px">${badges.join('')}</div>
-      </div>
-      <div class="dmeta">
-        <span>⏱ ${ts}</span>
-        ${prec?`<span>🎯 ${prec}</span>`:''}
-        ${sat ?`<span>🛰 ${sat}</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
-
-  const banner = document.getElementById('alert-banner');
-  if (alertas > 0) {
-    banner.style.display  = 'block';
-    banner.textContent    = `⚠ ${alertas} DISPOSITIVO${alertas>1?'S':''} FUERA DE GEOCERCA`;
-  } else {
-    banner.style.display  = 'none';
-  }
-}
-
-// ══════════════════════════════════════════════
-// STATUS HELPER
-// ══════════════════════════════════════════════
-function getStatus(d) {
-  const now    = Date.now();
-  const last   = d.ultimaVez || 0;
-  const online = last > 0 && (now - last) < OFFLINE_MS;
-  const gpsOff = d.gpsActivo === false && last > 0 && (now - last) < 300000;
-  return { online, gpsOff, estado: d.estado || null };
-}
-
-// ══════════════════════════════════════════════
-// SELECCIONAR DISPOSITIVO
-// ══════════════════════════════════════════════
-function selectDev(id) {
-  // FIX 1: al cambiar de dispositivo, permitir centrar de nuevo
-  if (sel !== id) primerCentrado = false;
-  sel = id;
-  ['btn-lock','btn-unlock','btn-geo','btn-delgeo'].forEach(b => document.getElementById(b).disabled = false);
-  initMap();
-  refresh();
-  if (mapReady) loadDevice(id);
-}
-
-function loadDevice(id) {
-  if (!mapReady) return;
-  const d = devices[id];
-  if (d?.ubicacion) updateMarker();
-  db.ref(`geocercas/${id}/puntos`).once('value', snap => {
-    const pts = snap.val();
-    if (pts) {
-      const coords = (Array.isArray(pts) ? pts : Object.values(pts)).map(p => [p.lng, p.lat]);
-      if (coords.length >= 3) { drawGC([...coords, coords[0]]); return; }
-    }
-    drawGC(null);
-  });
-}
-
-// ══════════════════════════════════════════════
-// INFO BAR
-// ══════════════════════════════════════════════
-function updateInfoBar() {
-  const bar = document.getElementById('infobar');
-  if (!sel) return;
-  const d = devices[sel];
-  if (!d) return;
-  const { online, gpsOff, estado } = getStatus(d);
-  const loc    = d.ubicacion || {};
-  const eColor = estado==='OK' ? 'var(--ok)' : estado==='FUERA' ? 'var(--red)' : 'var(--dim)';
-  const gColor = online && !gpsOff ? 'var(--ok)' : 'var(--red)';
-  const gTxt   = !online ? 'SIN SEÑAL' : gpsOff ? 'GPS OFF' : 'ACTIVO';
-
-  bar.innerHTML = `
-    <div class="chip"><div class="clabel">Dispositivo</div><div class="cval" title="${escapeHtml(sel)}">${escapeHtml(d.nombre || sel)}</div></div>
-    <div class="vsep"></div>
-    <div class="chip"><div class="clabel">Geocerca</div><div class="cval" style="color:${eColor}">${estado||'—'}</div></div>
-    <div class="vsep"></div>
-    <div class="chip"><div class="clabel">GPS</div><div class="cval" style="color:${gColor}">${gTxt}</div></div>
-    <div class="chip"><div class="clabel">Precisión</div><div class="cval">${loc.precision?`±${loc.precision.toFixed(1)}m`:'—'}</div></div>
-    <div class="chip"><div class="clabel">Satélites</div><div class="cval">${loc.satelites??'—'}</div></div>
-    <div class="chip"><div class="clabel">Velocidad</div><div class="cval">${loc.velocidad?(loc.velocidad*3.6).toFixed(1)+' km/h':'—'}</div></div>
-    <div class="vsep"></div>
-    <div class="chip"><div class="clabel">Bloqueo</div><div class="cval" style="color:${d.bloqueado?'var(--warn)':'var(--dim)'}">${d.bloqueado?'ACTIVO':'LIBRE'}</div></div>
-    <div class="vsep"></div>
-    <div class="chip"><div class="clabel">Última señal</div><div class="cval" style="font-size:11px">${d.ultimaVez?relTime(d.ultimaVez):'—'}</div></div>`;
-  document.getElementById('last-ts').textContent =
-    loc.hora ? `Actualizado: ${new Date(loc.hora).toLocaleTimeString()}` : '';
-}
-
-// ══════════════════════════════════════════════
-// MARCADOR
-// FIX 1: el marcador se mueve instantáneamente (sin animación que causa saltos visuales)
-// FIX 3: el mapa solo centra en la primera ubicación — el usuario puede mover el mapa libremente
-// ══════════════════════════════════════════════
-function updateMarker() {
-  if (!mapReady || !sel) return;
-  const d = devices[sel];
-  if (!d?.ubicacion?.latitud) return;
-  const { latitud:lat, longitud:lng } = d.ubicacion;
-
-  if (!marker) {
-    const el = document.createElement('div');
-    el.style.cssText = 'width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 14px var(--accent)';
-    marker = new mapboxgl.Marker({ element:el, pitchAlignment:'map' })
-      .setLngLat([lng, lat])
-      .addTo(map);
-  } else {
-    // Mover el marcador directamente sin animación — evita el efecto "baile"
-    marker.setLngLat([lng, lat]);
-  }
-
-  // Centrar el mapa solo la primera vez que aparece una ubicación
-  // Después el usuario puede mover el mapa libremente sin que vuelva a saltar
-  if (!primerCentrado) {
-    map.easeTo({ center:[lng, lat], zoom:17, duration:600 });
-    primerCentrado = true;
-  }
-}
-
-// ══════════════════════════════════════════════
-// BLOQUEAR / DESBLOQUEAR
-// ══════════════════════════════════════════════
-function bloquear() {
-  if (!sel) return;
-  db.ref(`restricciones/${sel}`).set(true)
-    .then(()  => notif('🔒 Dispositivo bloqueado', sel, 'warn'))
-    .catch(e  => notif('Error al bloquear', e.message, 'warn'));
-}
-
-function desbloquear() {
-  if (!sel) return;
-  Promise.all([
-    db.ref(`restricciones/${sel}`).set(false),
-    db.ref(`estado/${sel}`).set('OK'),
-    db.ref(`dispositivos/${sel}/estado`).set('OK')
-  ])
-  .then(() => notif('🔓 Dispositivo desbloqueado', sel, 'ok'))
-  .catch(e  => notif('Error al desbloquear', e.message, 'warn'));
-}
-
-// ══════════════════════════════════════════════
-// GEOCERCA — DIBUJO
-// ══════════════════════════════════════════════
-function toggleGeo() {
-  drawing = !drawing;
-  const btn  = document.getElementById('btn-geo');
-  const hint = document.getElementById('geohint');
-  if (drawing) {
-    drawPts = [];
-    btn.classList.add('on'); btn.textContent = '✅ Guardar Geocerca';
-    hint.style.display = 'block';
-    map.getCanvas().style.cursor = 'crosshair';
-    map.getSource('dr').setData(emptyFC());
-  } else {
-    btn.classList.remove('on'); btn.textContent = '📍 Definir Geocerca';
-    hint.style.display = 'none';
-    map.getCanvas().style.cursor = '';
-    if (drawPts.length >= 3) saveGC();
-    else { notif('Geocerca incompleta','Necesitas ≥ 3 puntos','warn'); drawPts = []; }
-    map.getSource('dr').setData(emptyFC());
-  }
-}
-
-function onMapClick(e) {
-  if (!drawing) return;
-  drawPts.push([e.lngLat.lng, e.lngLat.lat]);
-  renderDraw();
-}
-function onMapDblClick(e) {
-  if (!drawing) return;
-  e.preventDefault();
-  drawPts.push([e.lngLat.lng, e.lngLat.lat]);
-  toggleGeo();
-}
-function renderDraw() {
-  const feats = drawPts.map(p => ({ type:'Feature', geometry:{ type:'Point', coordinates:p } }));
-  if (drawPts.length >= 2)
-    feats.push({ type:'Feature', geometry:{ type:'LineString',
-      coordinates:[...drawPts, ...(drawPts.length>=3?[drawPts[0]]:[])] } });
-  map.getSource('dr').setData({ type:'FeatureCollection', features:feats });
-}
-function saveGC() {
-  if (!sel || drawPts.length < 3) return;
-  const puntos = drawPts.map(p => ({ lat:p[1], lng:p[0] }));
-  db.ref(`geocercas/${sel}/puntos`).set(puntos).then(() => {
-    notif('✅ Geocerca guardada', `${puntos.length} puntos — ${sel}`, 'ok');
-    drawGC([...drawPts, drawPts[0]]);
-  });
-}
-function drawGC(coords) {
-  if (!mapReady) return;
-  map.getSource('gc').setData(coords
-    ? { type:'FeatureCollection', features:[{ type:'Feature', geometry:{ type:'Polygon', coordinates:[coords] } }] }
-    : emptyFC());
-}
-function borrarGeocerca() {
-  if (!sel) return;
-  if (!confirm(`¿Borrar geocerca de "${sel}"?\nEl teléfono se desbloqueará automáticamente.`)) return;
-  Promise.all([
-    db.ref(`geocercas/${sel}`).remove(),
-    db.ref(`estado/${sel}`).set('OK'),
-    db.ref(`dispositivos/${sel}/estado`).set('OK'),
-    db.ref(`restricciones/${sel}`).set(false)
-  ]).then(() => {
-    notif('🗑 Geocerca eliminada y dispositivo desbloqueado', sel, 'ok');
-    drawGC(null);
-  });
-}
-
-// ══════════════════════════════════════════════
-// NOTIFICACIONES
-// ══════════════════════════════════════════════
-const alertasEnv = {};
-function alertaFuera(id) {
-  const now = Date.now();
-  if (alertasEnv[id] && now - alertasEnv[id] < 60000) return;
-  alertasEnv[id] = now;
-  notif(`⛔ FUERA DE GEOCERCA`, id, 'warn');
-  if ('Notification' in window && Notification.permission === 'granted')
-    new Notification('⛔ Dispositivo fuera de geocerca', { body:id });
-}
-function notif(titulo, cuerpo, tipo='info') {
-  const wrap = document.getElementById('notif-wrap');
-  const el   = document.createElement('div');
-  el.className = `notif n-${tipo}`;
-  el.innerHTML = `<div class="ntitle">${titulo}</div><div style="color:var(--dim)">${cuerpo}</div>`;
-  wrap.prepend(el);
-  setTimeout(() => el.remove(), 5000);
-}
-
-// ══════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════
-function relTime(ts) {
-  const d = Date.now() - ts;
-  if (d < 5000)    return 'ahora mismo';
-  if (d < 60000)   return `${Math.floor(d/1000)}s`;
-  if (d < 3600000) return `${Math.floor(d/60000)}m`;
-  return `${Math.floor(d/3600000)}h`;
-}
-
-// ══════════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════════
-(function boot() {
-  if ('Notification' in window && Notification.permission === 'default')
-    Notification.requestPermission();
-  listen();
-  document.getElementById('loading').style.display = 'none';
-  setInterval(renderList, 10000);
-})();
 </script>
 </body>
 </html>

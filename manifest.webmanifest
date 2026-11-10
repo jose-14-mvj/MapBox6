@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "GPS Control Pro",
+  "short_name": "GPS Control",
+  "description": "Panel seguro de geocercas, GPS y dispositivos autorizados",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080b0f",
+  "theme_color": "#080b0f",
+  "lang": "es",
+  "icons": [
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
