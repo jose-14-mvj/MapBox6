@@ -1,13 +1,13 @@
 'use strict';
 /* GPS Control Pro: clientes autenticados, solo posición actual en vivo, rutas bajo demanda. */
 const firebaseConfig = {
-  apiKey: 'AIzaSyCYb6kiLTpBzm7r8L_hVRp93SIDJeEwWR0',
+  apiKey: 'AIzaSyDoIeF_XG5Fg0w93XE6DRoLSMdjarr8qyY',
+  authDomain: 'gpscontrol-5357a.firebaseapp.com',
   databaseURL: 'https://gpscontrol-5357a-default-rtdb.firebaseio.com',
   projectId: 'gpscontrol-5357a',
   storageBucket: 'gpscontrol-5357a.firebasestorage.app',
   messagingSenderId: '361968276149',
-  // Sustituye por el App ID *web* del proyecto Firebase registrado en la consola.
-  appId: '1:361968276149:android:3abedc768502e5eaa1e4fc'
+  appId: '1:361968276149:web:02174b1eb4887291a1e4fc'
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
